@@ -64,7 +64,7 @@ public interface SudokuSolver {
 	 * Sets the sudoku to the numbers in numbers.
 	 * 
 	 * @param numbers The numbers to update with
-	 * @exception IllegalArgumentException if not all numbers in [1..9] 
+	 * @exception IllegalArgumentException if not all numbers in [0..9] 
 	 */
 	void setNumbers(int[][] numbers);
 	

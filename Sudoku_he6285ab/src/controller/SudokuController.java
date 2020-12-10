@@ -51,20 +51,11 @@ public class SudokuController {
 		bottomPanel.setLayout(buttonLayout);
 		
 		// Solve button
-		JButton solve = new JButton("Solve");
-		solve.addActionListener(e -> {
-			String addToSolver = addNumsToSolver(solver, gameGrid);
+		JButton solveButton = new JButton("Solve");
+		solveButton.addActionListener(e -> {
 			
-			// Check if illegal numbers caused exceptions
-			if (!addToSolver.equals("")) {
-				JOptionPane.showMessageDialog(frame, 
-						"The input at (" + addToSolver
-						+ ") is illegal.\nOnly numbers 1-9 are permitted.",
-						"Illegal input", 
-						JOptionPane.ERROR_MESSAGE);
-			
-			// Otherwise show the solution, if it exists
-			} else {
+			// If added numbers to solver without exceptions -> try to solve
+			if (tryAddNumsToSolver(solver, gameGrid)) {
 				
 				if(solver.solve()) {
 					addNumsToSudokuWindow(solver, gameGrid);
@@ -72,29 +63,39 @@ public class SudokuController {
 					JOptionPane.showMessageDialog(frame, "There is no solution!",
 							"Solution not found", JOptionPane.ERROR_MESSAGE);
 				}
-				
+
+			
+			// Otherwise give feedback
+			} else {
+				JOptionPane.showMessageDialog(frame, 
+						"The board contains illegal input.\nOnly numbers 1-9 are permitted.",
+						"Illegal input", 
+						JOptionPane.ERROR_MESSAGE);
 			}
 			
 		});
+		
+		// Enter key presses solve
+		frame.getRootPane().setDefaultButton(solveButton);
 
 		
 		// Clear button
-		JButton clear = new JButton("Clear");
-		clear.addActionListener(e -> {
+		JButton clearButton = new JButton("Clear");
+		clearButton.addActionListener(e -> {
 			solver.clear();
 			clearGrid(gameGrid);
 		});
 		
 		
 		// --- Add elements and style buttons ---
-		bottomPanel.add(clear);
-		bottomPanel.add(solve);	
+		bottomPanel.add(clearButton);
+		bottomPanel.add(solveButton);	
 		masterPane.add(gamePane);
 		masterPane.add(bottomPanel, BorderLayout.SOUTH);
 		
 		Font buttonFont = new Font("Calibri", Font.PLAIN, 25);
-		solve.setFont(buttonFont);
-		clear.setFont(buttonFont);
+		solveButton.setFont(buttonFont);
+		clearButton.setFont(buttonFont);
 		
 		// --- Set up the frame ---
 		frame.pack();
@@ -103,9 +104,12 @@ public class SudokuController {
 		
 	}
 	
-	// --- Private auxillary methods ---
 	
-	// Creates the Sudoku grid and returns it
+	
+	// --- Private helper methods ---
+	
+	
+	// Create the JTextField grid
 	private JTextField[][] createGrid(JPanel panel) {
 		JTextField[][] grid = new JTextField[9][9];
 		Font inputFont = new Font("Calibri", Font.PLAIN, 20);
@@ -118,11 +122,11 @@ public class SudokuController {
 				cell.setFont(inputFont);
 				
 				// For background styling purposes
-				boolean isTopCorner = r < 3 && (c < 3 || 5 < c);		// top left/right
-				boolean isBottomCorner = 5 < r && (c < 3 || 5 < c);		// middle
-				boolean isMiddle = 2 < r && r < 6 && 2 < c && c < 6;	// bottom left/right
+				boolean isTopLeftOrRight = r < 3 && (c < 3 || 5 < c);		
+				boolean isBottomLeftOrRight = 5 < r && (c < 3 || 5 < c);		
+				boolean isMiddle = 2 < r && r < 6 && 2 < c && c < 6;	
 				
-				if (isTopCorner || isBottomCorner || isMiddle) {
+				if (isTopLeftOrRight || isBottomLeftOrRight || isMiddle) {
 					cell.setBackground(new Color(255, 60, 0));
 				}
 				
@@ -133,7 +137,7 @@ public class SudokuController {
 		return grid;
 	}
 	
-	// Clears the grid entirely
+	// Clear the grid
 	private void clearGrid(JTextField[][] grid) {
 		for (int r = 0; r < 9; r++) {
 			for (int c = 0; c < 9; c++) {
@@ -142,38 +146,41 @@ public class SudokuController {
 		}
 	}
 	
-	// Tries to add numbers from the GUI to the solver
-	private String addNumsToSolver(SudokuSolver solver, JTextField[][] grid) {
+	// Try to add numbers from the GUI to the solver
+	private boolean tryAddNumsToSolver(SudokuSolver solver, JTextField[][] grid) {
 		
 		int[][] newGrid = new int[9][9];
 		for (int r = 0; r < 9; r++) {
 			for (int c = 0; c < 9; c++) {
 				
-				String inputFromCell = grid[r][c].getText();
+				String inputFromCell = grid[r][c].getText().trim();
 				
 				if (inputFromCell.equals("")) {
 					newGrid[r][c] = 0;
-
-				} else {
 					
+				} else if (inputFromCell.equals("0") || inputFromCell.length() > 1) {
+					return false;
+					
+				} else {
 					try {
-						int inputNum = Integer.valueOf(inputFromCell);
-						if (inputNum < 1 || inputNum > 9) {
-							throw new IllegalArgumentException();
-						}
-						newGrid[r][c] = inputNum;
+						newGrid[r][c] = Integer.valueOf(inputFromCell);
 					} catch (Exception e) {
-						return (r+1) + "," + (c+1);
+						return false;
 					}
 				}
 				
 			}
 		}
-		solver.setNumbers(newGrid);
-		return "";
+		
+		try {
+			solver.setNumbers(newGrid);
+		} catch (Exception e) {
+			return false;
+		}
+		return true;
 	}
 	
-	// Reads numbers from the solver and adds them to the GUI
+	// Read the numbers from the solver and add them to the GUI
 	private void addNumsToSudokuWindow(SudokuSolver solver, JTextField[][] grid) {
 		for (int r = 0; r < 9; r++) {
 			for (int c = 0; c < 9; c++) {
